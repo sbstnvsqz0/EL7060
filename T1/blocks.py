@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-SEED = 70
+from config import SEED
 torch.manual_seed(SEED)
 
 
@@ -17,8 +17,8 @@ class HiddenLayer(nn.Module):
         self.layer = nn.Linear(hidden_dim, hidden_dim)
         self.activation = nn.ReLU()
         self.dropout = nn.Dropout(dropout)
+
     def forward(self,x):
-        #TODO: Batchnorm?
         x0 = self.layer(x)
         x1 = self.activation(x0)
         out = self.dropout(x1)

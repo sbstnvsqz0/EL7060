@@ -1,24 +1,29 @@
 import torch
 import os
 import pandas as pd
+import librosa
+from config import DATA_FOLDER, SAMPLERATE, MAX_SIZE
 
-DATA_FOLDER = 'TiDigits'
 class SignalDataset(torch.utils.data.Dataset):
     """ 
     input: 
     Recibe tres posibles dir: "train", "validation","test"
     """
-    def __init__(self,dir):
+    def __init__(self,dir,preprocessing=None):
         assert dir in ["train","validation","test"], "Conjunto invalido"
         self.dir = dir
         self.df = (pd.read_csv(os.path.join(DATA_FOLDER, 'labels.csv'))[lambda x: x['partition'] == f"{self.dir}"])
+        self.preprocessing = preprocessing
         
     def __getitem__(self,idx):
         signal_path = os.path.join(DATA_FOLDER,self.df.iloc[idx]["path"])
+        waveform,_ = librosa.load(signal_path,sr=SAMPLERATE)
         label =  self.df.iloc[idx]["class"]
-        #TODO: preprocesamiento, editar dtypes si es necesario
 
-        return signal_path,label    # De momento retorna path, label
+        if self.preprocessing is not None:
+            signal = self.preprocessing.transform(waveform,MAX_SIZE)
+        #TODO: normalizar
+        return signal,label    # De momento retorna path, label
     
     def __len__(self):
         return len(self.df) # Retorna el número de muestras en el conjunto de datos
