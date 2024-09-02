@@ -15,7 +15,7 @@ class HiddenLayer(nn.Module):
     def __init__(self, hidden_dim, dropout):
         super(HiddenLayer, self).__init__()
         self.layer = nn.Linear(hidden_dim, hidden_dim)
-        self.activation = nn.ReLU()
+        self.activation = nn.Tanh()
         self.dropout = nn.Dropout(dropout)
 
     def forward(self,x):
@@ -38,13 +38,15 @@ class MLP(nn.Module):
         self.first = nn.Linear(input_dim,hidden_dim)
         self.hidden = nn.ModuleList([HiddenLayer(hidden_dim,dropout) for _ in range(n_layers)]) #Cadena de capas ocultas
         self.out = nn.Linear(hidden_dim,output_dim)
+        self.activation = nn.Tanh()
         self.softmax = nn.Softmax(dim=1)
         
     def forward(self,x):
         x = self.first(x)
+        x = self.activation(x)
         for layer in self.hidden:
             x = layer(x)
         x = self.out(x)
-        out = self.softmax(x)
+        x = self.softmax(x)
 
-        return out
+        return x

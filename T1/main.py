@@ -19,7 +19,7 @@ if __name__ == '__main__':
     device = DEVICE
     logging.info(f'Using device {device}')
 
-    trainer = EngineMLP(input_dim = 24,
+    trainer = EngineMLP(input_dim = 36,
                         hidden_dim = args.hidden_dim,
                         output_dim = OUT_DIM,
                         n_layers = args.n_layers,

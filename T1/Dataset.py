@@ -14,16 +14,17 @@ class SignalDataset(torch.utils.data.Dataset):
         self.dir = dir
         self.df = (pd.read_csv(os.path.join(DATA_FOLDER, 'labels.csv'))[lambda x: x['partition'] == f"{self.dir}"])
         self.preprocessing = preprocessing
-        
+
     def __getitem__(self,idx):
         signal_path = os.path.join(DATA_FOLDER,self.df.iloc[idx]["path"])
         waveform,_ = librosa.load(signal_path,sr=SAMPLERATE)
         label =  self.df.iloc[idx]["class"]
 
         if self.preprocessing is not None:
-            signal = self.preprocessing.transform(waveform,MAX_SIZE)
-        #TODO: normalizar
-        return signal,label    # De momento retorna path, label
+            features = self.preprocessing.transform(waveform)
+        else: 
+            features = waveform
+        return features,label    
     
     def __len__(self):
         return len(self.df) # Retorna el número de muestras en el conjunto de datos

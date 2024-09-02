@@ -2,6 +2,7 @@ import torch
 from scipy.signal import  get_window
 from torchaudio.transforms import MelSpectrogram
 from torchaudio.transforms import MFCC
+import joblib
 
 class Window:
     def __init__(self,name,frame_size):
@@ -55,3 +56,6 @@ def padding(waveform,max_large):
         return waveform
     return torch.concat((torch.zeros(n_pad_izq),torch.Tensor(waveform),torch.zeros(n_pad_der)))
        
+def scale_vector(X):
+    scaler = joblib.load("scaler.gz")
+    return torch.Tensor(scaler.transform(X))

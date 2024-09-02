@@ -1,24 +1,26 @@
 import torchaudio.functional as F
 from scipy.signal import get_window
-from torchaudio.transforms import ComputeDeltas
+from torchvision.transforms import Normalize
 import torch
-from src.utils.utils import get_mel_spectrogram, padding, get_MFCC
+from src.utils.utils import get_mel_spectrogram, padding, get_MFCC, scale_vector
+
 
 class Preprocessing:
-    def __init__(self, frame_size, hop, n_mels, n_fft, n_mfcc, samplerate):
+    def __init__(self, frame_size, hop, n_mels, n_fft, n_mfcc, samplerate, max_large):
         self.samplerate=samplerate
         self.frame_size = frame_size
         self.hop = hop
         self.n_mels = n_mels
         self.n_fft = n_fft
-        self.mel_spectrogram = get_mel_spectrogram(
-                                    frame_size, 
-                                    hop, 
-                                    n_mels, 
-                                    n_fft, 
-                                    samplerate,
-                                    window_type="hamming"
-                                )
+        self.max_large = max_large
+        #self.mel_spectrogram = get_mel_spectrogram(
+        #                            frame_size, 
+        #                            hop, 
+        #                            n_mels, 
+        #                            n_fft, 
+        #                            samplerate,
+        #                            window_type="hamming"
+        #                        )
         self.mfcc = get_MFCC(frame_size, 
                      hop, 
                      n_mels, 
@@ -26,14 +28,23 @@ class Preprocessing:
                      n_mfcc, 
                      samplerate)
     
-    def transform(self,waveform,max_large,compute_deltas=False):
-        out = padding(waveform,max_large)
-        out = self.mfcc(out)
-        a = torch.std(out,dim=1)
-        out = torch.mean(out,dim=1)
-        out = torch.concat((a,out))
+    def transform(self,waveform):
+        signal = padding(waveform,self.max_large)
+        #signal = torch.Tensor(waveform)
+        mfcc_features = self.mfcc(signal)
         
-        #TODO: computar deltas
-        return out
+        deltas = F.compute_deltas(specgram = mfcc_features,
+                             win_length=3)
+        deltasdeltas = F.compute_deltas(specgram = deltas,
+                                            win_length=3)
+            
+        ft1 = torch.mean(mfcc_features,dim=1)
+        ft2 = torch.mean(deltas,dim=1)
+        ft3 = torch.mean(deltasdeltas,dim=1)
+
+        features = torch.cat((ft1,ft2,ft3))
+        features_scaled = scale_vector(features.unsqueeze(0)).squeeze(0)
+        
+        return features_scaled
     
     
