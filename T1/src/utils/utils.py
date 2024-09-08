@@ -45,16 +45,28 @@ def get_MFCC(frame_size, hop, n_mels, n_fft,n_mfcc, samplerate,window_type="hamm
     )
     return mfcc
 
+#def padding(waveform,max_large):
+ #   if len(waveform) < max_large:
+  #      zero_number = max_large-len(waveform)
+   #     if zero_number % 2 ==0: 
+    #        n_pad_izq,n_pad_der = zero_number//2,zero_number//2
+     #   else: 
+      #      
+   # else:
+    #    return waveform
+    #return torch.concat((torch.zeros(n_pad_izq),torch.Tensor(waveform),torch.zeros(n_pad_der)))
 def padding(waveform,max_large):
-    if len(waveform) < max_large:
+    if len(waveform)< max_large:#si el audio es mas corto se hace padding 
         zero_number = max_large-len(waveform)
         if zero_number % 2 ==0: 
             n_pad_izq,n_pad_der = zero_number//2,zero_number//2
-        else: 
+        else:
             n_pad_izq, n_pad_der = zero_number//2, zero_number//2+1
-    else:
-        return waveform
-    return torch.concat((torch.zeros(n_pad_izq),torch.Tensor(waveform),torch.zeros(n_pad_der)))
+    elif len(waveform) > max_large:  # Si el audio es más largo, se corta
+        waveform = waveform[:max_large]  # Truncar el audio al largo máximo
+    
+    return waveform
+        
        
 def scale_vector(X):
     scaler = joblib.load("scaler.gz")
