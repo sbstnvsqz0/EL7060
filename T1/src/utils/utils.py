@@ -62,10 +62,13 @@ def padding(waveform,max_large):
             n_pad_izq,n_pad_der = zero_number//2,zero_number//2
         else:
             n_pad_izq, n_pad_der = zero_number//2, zero_number//2+1
+        
     elif len(waveform) > max_large:  # Si el audio es más largo, se corta
-        waveform = waveform[:max_large]  # Truncar el audio al largo máximo
+        print("hola")
+        waveform = waveform[ :max_large, :]  # Truncar el audio al largo máximo
+        return waveform
+    return torch.concat((torch.zeros(n_pad_izq),torch.Tensor(waveform),torch.zeros(n_pad_der)))
     
-    return waveform
         
        
 def scale_vector(X):
