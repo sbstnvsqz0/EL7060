@@ -41,6 +41,8 @@ class Preprocessing:
         ft1 = torch.mean(mfcc_features,dim=1)
         ft2 = torch.mean(deltas,dim=1)
         ft3 = torch.mean(deltasdeltas,dim=1)
+        #ft4 = mfcc_features.flatten()
+        #features = torch.cat((ft1,ft2,ft3,ft4))
 
         features = torch.cat((ft1,ft2,ft3))
         features_scaled = scale_vector(features.unsqueeze(0)).squeeze(0)
