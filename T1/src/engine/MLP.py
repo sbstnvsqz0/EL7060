@@ -1,4 +1,4 @@
-
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -7,32 +7,36 @@ from torch.optim import SGD, Adam
 from blocks import MLP
 from Dataset import SignalDataset 
 from src.utils.Preprocessing import Preprocessing
-from config import SEED, FRAME_SIZE, HOP, N_MELS, SAMPLERATE, N_MFCC, MAX_SIZE,DEVICE
+from config import SEED, DEVICE
 
-preprocessing = Preprocessing(frame_size=FRAME_SIZE,
-                  hop = HOP, 
-                  n_mels =N_MELS, 
-                  n_fft = FRAME_SIZE, 
-                  n_mfcc=N_MFCC,
-                  samplerate=SAMPLERATE,
-                  max_large=MAX_SIZE)
+#preprocessing = Preprocessing(frame_size=FRAME_SIZE,
+#                  hop = HOP, 
+#                  n_mels =N_MELS, 
+#                  n_fft = FRAME_SIZE, 
+#                  n_mfcc=N_MFCC,
+#                  samplerate=SAMPLERATE,
+#                  max_large=MAX_SIZE,
+#                  include_deltas=True)
 
-#TODO: gpu
 class EngineMLP:
-    def __init__(self,input_dim,hidden_dim,output_dim,n_layers,batch_size,learning_rate,dropout):
+    def __init__(self,input_dim,hidden_dim,output_dim,n_layers,batch_size,learning_rate,dropout,preprocessing):
         torch.manual_seed(SEED)
         self.model = MLP(input_dim,hidden_dim,output_dim,n_layers,dropout).to(DEVICE)
         self.batch_size = batch_size
         #self.optimizer = SGD(self.model.parameters(),lr=learning_rate) 
+        self.preprocessing = preprocessing
         self.optimizer = Adam(self.model.parameters(),lr=learning_rate)
         self.criterion = nn.CrossEntropyLoss()
         self.train_losses = []
         self.val_losses = []
+        self.best_val_loss = np.inf
         self.acc = 0
         
-    def train(self,epochs):
-        dataloader = DataLoader(SignalDataset("train",preprocessing),batch_size=self.batch_size,shuffle=False)
-        dataloader_eval = DataLoader(SignalDataset("validation",preprocessing),shuffle=False)
+    def train(self,epochs,patience,delta):
+        dataloader = DataLoader(SignalDataset("train",self.preprocessing),batch_size=self.batch_size,shuffle=False)
+        dataloader_eval = DataLoader(SignalDataset("validation",self.preprocessing),shuffle=False)
+        p = 0
+        status = 0
         for epoch in range(epochs):
             self.model.train()
             train_loss = 0
@@ -69,11 +73,23 @@ class EngineMLP:
                 acc = acc/len(dataloader_eval)
                 self.acc = acc
             self.val_losses.append(val_loss)
+
             print("Epoca: {}, \tTrain_loss: {:.4f}, \tVal loss: {:.4f}, \tAcc: {:.4f}".format(epoch,train_loss,val_loss,acc))
-            if acc >0.93: 
-                print("El entrenamiento ha concluido, ya que se llegó a la accuracy pedida")
+            if val_loss+delta<self.best_val_loss:
+                self.best_val_loss = val_loss
+                self.acc = acc
+                p = 0
+            else:
+                p+=1
+            
+            if p==patience:
+                self.train_losses = self.train_losses[:-patience]
+                self.val_losses = self.val_losses[:-patience]
+                status = 1
+                print("Patience alcanzada, terminando entrenamiento")
                 break
-        print("El entrenamiento ha concluido las épocas sin llegar al accuracy pedido")
+        if status == 0:
+            print("El entrenamiento ha concluido dado que se llegó a las épocas")
 
     def evaluate(self,dataloader):
         self.model.eval()
@@ -90,6 +106,7 @@ class EngineMLP:
                 pred_labels.append(label_pred.cpu())
                 acc += (label_pred==label).sum()
                 acc = acc/len(dataloader)
+        return acc
         
     def save_model(self):
         torch.save(self.model.state_dict(), "model.pth")
