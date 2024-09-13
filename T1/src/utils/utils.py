@@ -2,6 +2,8 @@ import torch
 from scipy.signal import  get_window
 from torchaudio.transforms import MelSpectrogram
 from torchaudio.transforms import MFCC
+import matplotlib.pyplot as plt
+import numpy as np
 import joblib
 
 class Window:
@@ -75,3 +77,21 @@ def padding(waveform,max_large):
 def scale_vector(X):
     scaler = joblib.load("scaler.gz")
     return torch.Tensor(scaler.transform(X)).squeeze(0)
+
+
+def compare_losses(losses_list, param_list, name_param):
+    """
+    Compara las losses de distintos modelos entrenados variando un parámetro
+    """
+    colors = [(1,0,0),(0,1,0),(0,0,1),(1,0,1),(0,1,1),(0.3,0.3,0.3),(0.5,0.5,0),(0,0.5,0.5),(0.5,0,0.5)]
+    fig, ax = plt.subplots(1,1,figsize=(20,14))
+    ax.set_title(f"Losses para entrenamientos con distintos {name_param}")
+    ax.set_xlabel("Épocas")
+    ax.set_ylabel("Loss")
+    for i in range(len(losses_list)):
+        ax.plot(np.arange(len(losses_list[i][0])),losses_list[i][0],'--',color=colors[i],label=f"train con {name_param}: {param_list[i]}")
+        ax.plot(np.arange(len(losses_list[i][0])),losses_list[i][1], color=colors[i],label=f"validación con {name_param}: {param_list[i]}")
+
+    ax.set_xlim([0,30])
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.show()

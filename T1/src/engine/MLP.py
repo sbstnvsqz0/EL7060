@@ -29,7 +29,7 @@ class EngineMLP:
         self.acc = 0
         self.best_acc = 0
         
-    def train(self,epochs,patience,delta):
+    def train(self,epochs,patience,delta,save_model=True):
         dataloader = DataLoader(SignalDataset("train",self.preprocessing),batch_size=self.batch_size,shuffle=False)
         dataloader_eval = DataLoader(SignalDataset("validation",self.preprocessing),shuffle=False)
         p = 0
@@ -77,7 +77,8 @@ class EngineMLP:
             print("Epoca: {}, \tTrain_loss: {:.4f}, \tVal loss: {:.4f}, \tAcc: {:.4f}".format(epoch,train_loss,val_loss,acc))
             if acc > self.best_acc:
                 self.best_acc = acc
-                self.save_model()
+                if save_model:
+                    self.save_model()
             if val_loss+delta<self.best_val_loss:
                 self.best_val_loss = val_loss
                 self.acc = acc
@@ -125,7 +126,7 @@ class EngineMLP:
         self.model.load_state_dict(torch.load(path))
 
     def return_losses(self):
-        return self.train_losses, self.val_losses
+        return [self.train_losses, self.val_losses]
     
     def return_acc(self):
         return self.acc
