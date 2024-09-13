@@ -40,6 +40,10 @@ class Preprocessing:
         deltasdeltas = F.compute_deltas(specgram = deltas,
                                                 win_length=3)
             
+        range_mfcc = torch.max(mfcc_features,dim=1).values-torch.min(mfcc_features,dim=1).values
+        range_deltas = torch.max(deltas,dim=1).values-torch.min(deltas,dim=1).values
+        range_deltasdeltas = torch.max(deltasdeltas,dim=1).values-torch.min(deltasdeltas,dim=1).values
+
         ft1 = torch.mean(mfcc_features,dim=1)
         ft2 = torch.std(mfcc_features,dim=1)
         ft3 = torch.mean(deltas,dim=1)
@@ -47,11 +51,14 @@ class Preprocessing:
         ft5 = torch.mean(deltasdeltas,dim=1)
         ft6 = torch.std(deltasdeltas,dim=1)
         #ft4 = mfcc_features.flatten()
-        #features = torch.cat((ft1,ft2,ft3,ft4))
+        if self.include_deltas:
+            features = torch.cat((ft1,ft2,ft3,ft4,ft5,ft6))
+        else: 
+            features = torch.cat((ft1,ft2))
 
-        features = torch.cat((ft1,ft2,ft3,ft4,ft5,ft6))
+        #features = torch.cat((ft1,ft2,range_mfcc,ft3,ft4,range_deltas,ft5,ft6,range_deltasdeltas))
         #features_scaled = scale_vector(features.unsqueeze(0))
-
+        # TODO: HACER 
         if not self.include_deltas:
             features_scaled = features_scaled
 

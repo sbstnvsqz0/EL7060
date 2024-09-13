@@ -6,11 +6,13 @@ from config import FRAME_SIZE, HOP, N_MELS, SAMPLERATE, N_MFCC, MAX_SIZE,DEVICE,
 from src.utils.Preprocessing import Preprocessing
 
 def objective_function(trial):
-    params_model ={"batch_size":trial.suggest_categorical("batch_size",[16,20,24,28,32]),
-                   "hidden_dim":trial.suggest_int("hidden_dim",10,50),
+    params_model ={"batch_size":trial.suggest_int("batch_size",4,64),
+                   "hidden_dim":trial.suggest_int("hidden_dim",40,70)
                    #"n_layers":trial.suggest_int("n_layers",1,3),
-                   "learning_rate":trial.suggest_float("learning_rate",1e-5,1e-1,log=True),
-                   "dropout":trial.suggest_categorical("dropout",[0.1,0.2,0.3,0.4,0.5])}
+                   #"learning_rate":trial.suggest_float("learning_rate",1e-4,1e-1,log=True),
+                   #"momentum":trial.suggest_float("momentum",0.8,0.999,log=True),
+                   #"dropout":trial.suggest_categorical("dropout",[0.1,0.2,0.3,0.4,0.5])
+                   }
 
     preprocessing = Preprocessing(frame_size=FRAME_SIZE,
                   hop = HOP, 
@@ -27,9 +29,11 @@ def objective_function(trial):
                       output_dim = OUT_DIM,
                       preprocessing = preprocessing,
                       n_layers=1,
+                      dropout = 0.2,
+                      learning_rate=0.02,
                       **params_model)
     
-    model.train(10,patience=2,
+    model.train(20,patience=10,
                   delta = 0.01)
 
     return model.return_acc()

@@ -43,7 +43,7 @@ class MLP(nn.Module):
         
     def forward(self,x):
         x = self.first(x)
-        x = self.activation(x)
+        #x = self.activation(x)
         for layer in self.hidden:
             x = layer(x)
         x = self.out(x)

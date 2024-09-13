@@ -43,5 +43,5 @@ if __name__ == '__main__':
                         preprocessing = preprocessing)
     
     trainer.train(epochs = args.epochs,
-                  patience=5,
+                  patience=15,
                   delta = 0.01)
