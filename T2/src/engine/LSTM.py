@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch.optim import SGD, Adam
-from torch.optim.lr_scheduler import StepLR, CyclicLR
+from torch.optim.lr_scheduler import StepLR, CyclicLR, ReduceLROnPlateau
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -26,6 +26,7 @@ class EngineLSTM:
         #self.optimizer = SGD(self.model.parameters(),lr=learning_rate,momentum=0.9) 
         self.preprocessing = preprocessing
         self.optimizer = Adam(self.model.parameters(),lr=learning_rate)
+        self.scheduler = ReduceLROnPlateau(self.optimizer,mode='min',factor=0.5,patience=5,threshold = 1e-2,min_lr=1e-6)
         #self.scheduler = CyclicLR(self.optimizer,base_lr=0.1*learning_rate,max_lr=learning_rate,step_size_up=1000)
         self.criterion = nn.CrossEntropyLoss()
         self.train_losses = []
@@ -34,8 +35,16 @@ class EngineLSTM:
         self.acc = 0
         self.best_acc = 0
         
-    def train(self,epochs,patience,delta,save_model=True):
-        dataloader = DataLoader(CremaDDataset("train",self.preprocessing),batch_size=self.batch_size,shuffle=True)
+    def train(self,epochs,patience,delta,save_model=True,augmentation=True):
+        if augmentation: 
+            ds_not_aug = CremaDDataset("train",self.preprocessing)
+            ds_aug_speed = CremaDDataset("train",self.preprocessing,"speed")
+            ds_aug_pitch = CremaDDataset("train",self.preprocessing,"pitch")
+            ds = torch.utils.data.ConcatDataset([ds_not_aug,ds_aug_speed,ds_aug_pitch])
+        else: 
+            ds = CremaDDataset("train",self.preprocessing)
+
+        dataloader = DataLoader(ds,batch_size=self.batch_size,shuffle=True)
         dataloader_eval = DataLoader(CremaDDataset("validation",self.preprocessing),shuffle=False)
         p = 0
         status = 0
@@ -76,7 +85,8 @@ class EngineLSTM:
                 val_loss = val_loss/len(dataloader_eval)
                 acc = acc/len(dataloader_eval)
                 self.acc = acc
-            
+
+            self.scheduler.step(val_loss)
             
             self.val_losses.append(val_loss)
 

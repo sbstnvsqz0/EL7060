@@ -3,6 +3,7 @@ from scipy.signal import  get_window
 from torchaudio.transforms import MFCC, MelSpectrogram
 import matplotlib.pyplot as plt
 import numpy as np
+import librosa
 
 class Window:
     def __init__(self,name,frame_size):
@@ -43,3 +44,16 @@ def get_MFCC(frame_size, hop, n_mels, n_fft,n_mfcc, samplerate,window_type="hamm
     "mel_scale":"htk"}
     )
     return mfcc
+
+def augment_audio(signal,sr,augment_type='speed'):
+    
+    # Aumentación: Cambio de velocidad
+    if augment_type == 'speed':
+        y_aug = librosa.effects.time_stretch(y=signal, rate=np.random.uniform(0.9, 1.1))
+    
+    # Aumentación: Cambio de tono
+    elif augment_type == 'pitch':
+        y_aug = librosa.effects.pitch_shift(y=signal, sr=sr, n_steps=np.random.randint(-2, 3))
+    
+    # Retorna el audio aumentado
+    return y_aug
