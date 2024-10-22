@@ -38,8 +38,10 @@ if __name__ == '__main__':
                          dropout = args.dropout,
                          batch_size = args.batch_size,
                          learning_rate = args.learning_rate,
-                         preprocessing = preprocessing)
+                         preprocessing = preprocessing
+                         )
     
     trainer.train(epochs = args.epochs,
-                  patience=20,
-                  delta = 0.01)
+                  patience=40,
+                  delta = 0.01,
+                  augmentation=False)

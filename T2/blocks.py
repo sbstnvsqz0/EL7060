@@ -74,27 +74,29 @@ class CustomLSTM(nn.Module):
 
         # capa recurrente
         self.input_size = input_size
-        self.lstm = torch.nn.LSTM(input_size=self.input_size, 
+        self.lstm = torch.nn.GRU(input_size=self.input_size, 
                                   hidden_size=hidden_size, 
                                   num_layers=num_lstm_layers, 
-                                  batch_first=True)
+                                  batch_first=True,
+                                  dropout=dropout)
 
         # capa fully conected
-        self.fc = CustomMLP(input_dim = hidden_size,
-                            output_dim = output_size,
-                            n_layers = num_mlp_layers,
-                            dropout = dropout)
-        
+        #self.fc = CustomMLP(input_dim = hidden_size,
+                            #output_dim = output_size,
+                            #n_layers = num_mlp_layers,
+                            #dropout = dropout)
+        self.fc = nn.Linear(hidden_size,output_size)
+        self.softmax = nn.Softmax(dim=1)
     def forward(self, x, lengths):
         #Se enpaquetan inputs, para que en cada batch se procesen solo los datos útiles.
         packed_input = rnn_utils.pack_padded_sequence(x,lengths,batch_first=True,enforce_sorted=False)
-        packed_output, _ = self.lstm(packed_input)
+        packed_output, _= self.lstm(packed_input)
         #Se desempaquetan los outputs del batch 
         output, _ = rnn_utils.pad_packed_sequence(packed_output,batch_first=True)
         #Se saca el último output válido para cada dato.
         valid_output = self.get_last_valid_output(output,lengths)
         mlp_output = self.fc(valid_output)
-        return mlp_output
+        return self.softmax(mlp_output)
     
     def get_last_valid_output(self,output,lengths):
         batch_size = output.size(0)

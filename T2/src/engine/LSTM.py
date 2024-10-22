@@ -34,6 +34,7 @@ class EngineLSTM:
         self.best_val_loss = np.inf
         self.acc = 0
         self.best_acc = 0
+
         
     def train(self,epochs,patience,delta,save_model=True,augmentation=True):
         if augmentation: 
