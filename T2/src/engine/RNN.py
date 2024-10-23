@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import pandas as pd
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from torch.optim import SGD, Adam
@@ -11,6 +12,7 @@ import matplotlib.pyplot as plt
 from blocks import CustomRNN
 from config import SEED, DEVICE
 from CremaD import CremaDDataset
+import os
 
 
 class EngineRNN:
@@ -41,7 +43,7 @@ class EngineRNN:
             ds_aug_speed = CremaDDataset("train",self.preprocessing,"speed")
             ds_aug_pitch = CremaDDataset("train",self.preprocessing,"pitch")
             ds_aug_distortion = CremaDDataset("train",self.preprocessing,"distortion")
-            ds = torch.utils.data.ConcatDataset([ds_not_aug,ds_aug_speed,ds_aug_pitch])
+            ds = torch.utils.data.ConcatDataset([ds_not_aug,ds_aug_speed,ds_aug_pitch,ds_aug_distortion])
         else: 
             ds = CremaDDataset("train",self.preprocessing)
 
@@ -108,6 +110,12 @@ class EngineRNN:
                 status = 1
                 print("Patience alcanzada, terminando entrenamiento")
                 break
+        try:
+            os.makedirs("losses")
+        except FileExistsError:
+            # directory already exists
+            pass
+        self.save_losses(name)
         if status == 0:
             print("El entrenamiento ha concluido dado que se llegó a las épocas")
 
@@ -141,8 +149,10 @@ class EngineRNN:
     def load_model(self,path):
         self.model.load_state_dict(torch.load(path))
 
-    def return_losses(self):
-        return [self.train_losses, self.val_losses]
+    def save_losses(self,name):
+        losses = [self.train_losses, self.val_losses]
+        df = pd.DataFrame(losses,columns=["train","val"])
+        df.to_csv("losses/"+name+".csv",index=False)
     
     def return_acc(self):
         return self.acc

@@ -4,6 +4,7 @@ from torchaudio.transforms import MFCC, MelSpectrogram
 import matplotlib.pyplot as plt
 import numpy as np
 import librosa
+import pandas as pd
 
 class Window:
     def __init__(self,name,frame_size):
@@ -60,3 +61,14 @@ def augment_audio(signal,sr,augment_type='speed'):
     
     # Retorna el audio aumentado
     return y_aug
+
+def plt_losses(path,title):
+    df = pd.read_csv(path)
+    plt.plot(np.arange(len(df["train"])),df["train"],label="Losses de entrenamiento")
+    plt.plot(np.arange(len(df["val"])),df["val"],label="Losses de validacion")
+    plt.title(title)
+    plt.xlabel("Época")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.show()
+    
