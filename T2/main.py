@@ -2,7 +2,7 @@ import argparse
 import logging
 from config import FRAME_SIZE, HOP, N_MELS, SAMPLERATE, N_MFCC ,DEVICE, OUT_DIM
 from src.utils.Preprocessing import Preprocessing
-from src.engine.LSTM import EngineLSTM
+from src.engine.RNN import EngineRNN
 
 def get_args():
     parser = argparse.ArgumentParser('Entrenar la red')
@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     logging.info(f'Using device {device}')
 
-    trainer = EngineLSTM(input_size = N_MFCC+N_MELS+2,
+    trainer = EngineRNN(input_size = N_MFCC+2+12,
                          hidden_size = args.hidden_size,
                          num_lstm_layers = args.num_lstm_layers,
                          num_mlp_layers = args.num_mlp_layers,

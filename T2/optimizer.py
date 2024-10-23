@@ -1,6 +1,6 @@
 import optuna
 from optuna.samplers import TPESampler
-from src.engine.LSTM import EngineLSTM
+from T2.src.engine.RNN import EngineRNN
 from config import FRAME_SIZE, HOP, N_MELS, SAMPLERATE, N_MFCC, OUT_DIM
 from src.utils.Preprocessing import Preprocessing
 
@@ -22,7 +22,7 @@ def objective_function(trial):
     
     input_dim = N_MFCC+N_MELS+2
 
-    model = EngineLSTM(input_size = input_dim,
+    model = EngineRNN(input_size = input_dim,
                          output_size = OUT_DIM, 
                          preprocessing = preprocessing,
                          **params_model

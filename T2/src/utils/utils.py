@@ -54,6 +54,9 @@ def augment_audio(signal,sr,augment_type='speed'):
     # Aumentación: Cambio de tono
     elif augment_type == 'pitch':
         y_aug = librosa.effects.pitch_shift(y=signal, sr=sr, n_steps=np.random.randint(-2, 3))
+    # Aumentación: distorción
+    elif augment_type == 'distortion':
+        y_aug = signal + 0.3 * np.sin(np.linspace(0, np.pi * 2, len(signal)))
     
     # Retorna el audio aumentado
     return y_aug
