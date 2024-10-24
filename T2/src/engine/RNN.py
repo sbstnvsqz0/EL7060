@@ -151,8 +151,12 @@ class EngineRNN:
         self.model.load_state_dict(torch.load(path))
 
     def save_losses(self,name):
-        losses = [self.train_losses, self.val_losses]
-        df = pd.DataFrame(losses,columns=["train","val"])
+        try:
+            os.makedirs("losses")
+        except FileExistsError:
+            # directory already exists
+            pass
+        df = pd.DataFrame(np.array([self.train_losses,self.val_losses]).T,columns=["train","val"])
         df.to_csv("losses/"+name+".csv",index=False)
     
     def return_acc(self):

@@ -13,6 +13,7 @@ def get_args():
     parser.add_argument("--num_mlp_layers","-nmlp",type=int,default=2,help="Número capas ocultas de MLP")
     parser.add_argument("--learning_rate","-lr",type=float,default=0.01,help="Learning rate del optimizer")
     parser.add_argument("--dropout","-d",type=float,default=0.2,help="Dropout")
+    parser.add_argument("--name","-n", type=str, default="model", help="Nombre del archivo.pth y de losses que se sacan después del entrenamiento")
    
     return parser.parse_args()
 
@@ -30,7 +31,7 @@ if __name__ == '__main__':
 
     logging.info(f'Using device {device}')
 
-    trainer = EngineRNN(input_size = N_MFCC+2+12,
+    trainer = EngineRNN(input_size = N_MFCC+N_MELS+2+12,
                          hidden_size = args.hidden_size,
                          num_lstm_layers = args.num_lstm_layers,
                          num_mlp_layers = args.num_mlp_layers,
@@ -44,4 +45,5 @@ if __name__ == '__main__':
     trainer.train(epochs = args.epochs,
                   patience=40,
                   delta = 0.01,
-                  augmentation=False)
+                  augmentation=False,
+                  name= args.name)
