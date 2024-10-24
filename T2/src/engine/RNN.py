@@ -10,9 +10,10 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 from blocks import CustomRNN
-from config import SEED, DEVICE
+from config import SEED, DEVICE, SAMPLERATE
 from CremaD import CremaDDataset
 import os
+import librosa
 
 
 class EngineRNN:
@@ -156,3 +157,17 @@ class EngineRNN:
     
     def return_acc(self):
         return self.acc
+
+    def predict_one(self,audio,data_folder):
+        diccionario = {0: "Neutral", 1: "Sad", 2: "Fear",3: "Disgust",4: "Happy/Joy", 5: "Anger", -1: "desconocida"}
+        waveform,_ = librosa.load(os.path.join(data_folder,audio),sr=SAMPLERATE)
+        features = self.preprocessing.transform(waveform,pad=False)
+        length = [len(features)]
+        pred = self.model(torch.unsqueeze(features,dim=0).to(DEVICE),length)
+        label_pred = torch.argmax(pred,dim=1).item()
+        df = pd.read_csv("CREMA-D/labels.csv")
+        try:
+            label = df.loc[df['path'] == audio]["class"][0]
+        except:
+            label = -1
+        print("Emoción real: "+diccionario[label]+"; Emoción predicha: "+diccionario[label_pred])
