@@ -8,7 +8,7 @@ from src.utils.utils import augment_audio
 class CremaDDataset(torch.utils.data.Dataset):
     def __init__(self, dir, preprocessing=None,augmentation=None):
         assert dir in ["train","validation","test"], "Conjunto invalido"
-        assert augmentation in [None, "speed","pitch"], "Augmentation Invalida"
+        assert augmentation in [None, "speed","pitch", "distortion"], "Augmentation Invalida"
         self.dir = dir
         self.preprocessing = preprocessing 
         self.augmentation = augmentation
