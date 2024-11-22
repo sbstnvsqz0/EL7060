@@ -5,3 +5,5 @@
 *.pth
 */CREMA-D
 */losses
+*/Podcast
+*.zip
