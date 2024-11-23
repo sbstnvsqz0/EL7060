@@ -27,8 +27,8 @@ class EngineRNN:
                                 dropout=dropout).to(DEVICE)
         self.batch_size = batch_size
         self.preprocessing = preprocessing
-        self.optimizer = Adam(self.model.parameters(),lr=learning_rate) ## TODO: Revisar
-        self.scheduler = ReduceLROnPlateau(self.optimizer,mode='min',factor=0.5,patience=5,threshold = 1e-2,min_lr=1e-6)
+        self.optimizer = Adam(self.model.parameters(),lr=learning_rate) 
+        self.scheduler = StepLR(self.optimizer,step_size=10,gamma=0.1)
         self.criterion = nn.MSELoss()
         self.train_losses = []
         self.val_losses = []
@@ -64,6 +64,7 @@ class EngineRNN:
                     pred = self.model(input,lengths)
                     real_values = torch.stack([activation,valence,dominance],dim=1).float()
                     
+
                     t_loss = self.criterion(pred,real_values)
                     train_loss +=t_loss.item()  #Acumulo losses por época
                     t_loss.backward()   #Propago loss en cada batch
@@ -72,6 +73,10 @@ class EngineRNN:
                     pbar.update(1)
             train_loss = train_loss/len(dataloader)
             self.train_losses.append(train_loss)
+
+            activation_loss = 0
+            valence_loss = 0
+            dominance_loss = 0
 
             self.model.eval()
             with torch.no_grad():
@@ -82,14 +87,20 @@ class EngineRNN:
 
                     val_loss += self.criterion(pred,real_values).item()
 
-                
-                val_loss = val_loss/len(dataloader_eval)
+                    activation_loss += self.criterion(pred[0][0]*6+1,real_values[0][0]*6+1)
+                    valence_loss += self.criterion(pred[0][1]*6+1,real_values[0][1]*6+1)
+                    dominance_loss += self.criterion(pred[0][2]*6+1,real_values[0][2]*6+1)
 
-            #self.scheduler.step(val_loss)
+                val_loss = val_loss/len(dataloader_eval)
+                activation_loss = activation_loss/len(dataloader_eval)
+                valence_loss = valence_loss/len(dataloader_eval)
+                dominance_loss = dominance_loss/len(dataloader_eval)
+
+            self.scheduler.step()   #Step en cada época
             
             self.val_losses.append(val_loss)
 
-            print("Epoca: {}, \tTrain_loss: {:.4f}, \tVal loss: {:.4f}".format(epoch,train_loss,val_loss))
+            print("Epoca: {}, \tTrain_loss: {:.4f}, \tVal loss: {:.4f} \tAct_MSE: {:.4f} \tDom_MSE: {:.4f} \tVal_MSE: {:.4f}".format(epoch,train_loss,val_loss,activation_loss, dominance_loss, valence_loss))
 
             if val_loss+delta<self.best_val_loss:
                 if save_model:

@@ -15,13 +15,15 @@ class PodcastDataset(torch.utils.data.Dataset):
         #Means y stds sacadas desde dataset de entrenamiento para cada variable objetivo.
         self.means = {"activation":4.4851, "dominance":4.5854,"valence":3.9211}
         self.stds = {"activation":0.9946 , "dominance":0.9531,"valence":1.0403}
+        self.min = 1
+        self.max = 7
         
     def __getitem__(self,idx):
         signal_path = os.path.join(DATA_FOLDER,self.df.iloc[idx]["path"])
         waveform,_ = librosa.load(signal_path,sr=SAMPLERATE)
-        activation =  (self.df.iloc[idx]["activation"]-self.means["activation"])/self.stds["activation"]
-        valence = (self.df.iloc[idx]["valence"]-self.means["valence"])/self.stds["valence"]
-        dominance = (self.df.iloc[idx]["dominance"]-self.means["dominance"])/self.stds["dominance"]
+        activation =  (self.df.iloc[idx]["activation"]-self.min)/(self.max-self.min)
+        valence = (self.df.iloc[idx]["valence"]-self.min)/(self.max-self.min)
+        dominance = (self.df.iloc[idx]["dominance"]-self.min)/(self.max-self.min)
         
                        
         if self.preprocessing is not None:

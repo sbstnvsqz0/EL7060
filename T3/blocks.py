@@ -55,6 +55,7 @@ class CustomRNN(nn.Module):
         elif self.num_mlp_layers==2:
             self.fc = HiddenLayer(2*hidden_size,2*hidden_size//2,dropout=dropout)
             self.fc2 = nn.Linear(2*hidden_size//2,output_size)
+        self.activation = nn.Sigmoid()
             
     def forward(self, x, lengths):
         #Se empaquetan inputs, para que en cada batch se procesen solo los datos útiles.
@@ -70,7 +71,9 @@ class CustomRNN(nn.Module):
         elif self.num_mlp_layers==2:
             mlp_output = self.fc(valid_output)
             mlp_output = self.fc2(mlp_output)
-        return (mlp_output)
+        output = self.activation(mlp_output)
+        
+        return (output)
     
     def get_last_valid_output(self,output,lengths):
         batch_size = output.size(0)
