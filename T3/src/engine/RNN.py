@@ -101,19 +101,17 @@ class EngineRNN:
             self.val_losses.append(val_loss)
 
             print("Epoca: {}, \tTrain_loss: {:.4f}, \tVal loss: {:.4f} \tAct_MSE: {:.4f} \tDom_MSE: {:.4f} \tVal_MSE: {:.4f}".format(epoch,train_loss,val_loss,activation_loss, dominance_loss, valence_loss))
-
+            if val_loss < self.best_val_loss:
+                self.save_model(name=name)
             if val_loss+delta<self.best_val_loss:
-                if save_model:
-                    self.save_model(name=name)
                 self.best_val_loss = val_loss
-                self.acc = acc
                 p = 0
             else:
                 p+=1
             
             if p==patience:
-                self.train_losses = self.train_losses[:-patience]
-                self.val_losses = self.val_losses[:-patience]
+                self.train_losses = self.train_losses
+                self.val_losses = self.val_losses
                 status = 1
                 print("Patience alcanzada, terminando entrenamiento")
                 break
@@ -122,29 +120,31 @@ class EngineRNN:
         if status == 0:
             print("El entrenamiento ha concluido dado que se llegó a las épocas")
 
-    def evaluate(self,dataloader):
+    def evaluate(self,dataloader_eval,title=""):
         self.model.eval()
         acc = 0
-        real_labels = []
-        pred_labels = []
+        activation_loss = 0
+        valence_loss = 0
+        dominance_loss = 0
+      
         with torch.no_grad():
-            for batch in tqdm(dataloader, total=len(dataloader),desc="Evaluación"):
-                input,label,lengths = batch[0].float().to(DEVICE),batch[1].type(torch.uint8).to(DEVICE), batch[2]
-                
+            for batch in tqdm(dataloader_eval, total=len(dataloader_eval),desc="Evaluación"):
+                input,activation, valence, dominance,lengths = batch[0].float().to(DEVICE),batch[1].to(DEVICE),batch[2].to(DEVICE),batch[3].to(DEVICE), batch[4]
                 pred = self.model(input,lengths)
-                label_pred = torch.argmax(pred,dim=1)
-                real_labels.append(label.cpu())
-                pred_labels.append(label_pred.cpu())
-                acc += (label_pred==label).sum()
-            acc = acc/len(dataloader)
-            conf_matrix = confusion_matrix(y_true = real_labels,
-                                             y_pred = pred_labels,
-                                             normalize='true')
-            sns.heatmap(conf_matrix,annot=True,cmap="summer")
-            plt.xlabel("Valores predichos")
-            plt.ylabel("Valores reales")
+                real_values = torch.stack([activation,valence,dominance],dim=1)
+
+                activation_loss += self.criterion(pred[0][0]*6+1,real_values[0][0]*6+1)
+                valence_loss += self.criterion(pred[0][1]*6+1,real_values[0][1]*6+1)
+                dominance_loss += self.criterion(pred[0][2]*6+1,real_values[0][2]*6+1)
+
+            activation_loss = activation_loss/len(dataloader_eval)
+            valence_loss = valence_loss/len(dataloader_eval)
+            dominance_loss = dominance_loss/len(dataloader_eval)
+
+            plt.bar(x=["Activation","Dominance","Valence","Mean"],heigth=[activation_loss,dominance_loss,valence_loss,np.mean([activation_loss,dominance_loss,valence_loss])])
+            plt.title(title)
             plt.show()
-            print(f"Accuracy: {acc}")
+            print(f"MSE Activation: {activation_loss}, MSE dominance: {dominance_loss}, MSE valence: {valence_loss}")
         
     def save_model(self,name):
         torch.save(self.model.state_dict(), name+".pth")
