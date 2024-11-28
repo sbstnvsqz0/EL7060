@@ -1,5 +1,5 @@
 Pasos a seguir para correr código:
-1. Copiar carpeta CREMA-D a carpeta T2.
+1. Copiar carpeta Podcast a carpeta T3.
 2. Instalar requirements.txt 
 3. Correr demo.ipynb para ver que todo funcione.
 4. Correr comando python main.py para poder entrenar en environment con librerias instaladas.
