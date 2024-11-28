@@ -122,7 +122,6 @@ class EngineRNN:
 
     def evaluate(self,dataloader_eval,title=""):
         self.model.eval()
-        acc = 0
         activation_loss = 0
         valence_loss = 0
         dominance_loss = 0
@@ -137,14 +136,19 @@ class EngineRNN:
                 valence_loss += self.criterion(pred[0][1]*6+1,real_values[0][1]*6+1)
                 dominance_loss += self.criterion(pred[0][2]*6+1,real_values[0][2]*6+1)
 
-            activation_loss = activation_loss/len(dataloader_eval)
-            valence_loss = valence_loss/len(dataloader_eval)
-            dominance_loss = dominance_loss/len(dataloader_eval)
-
-            plt.bar(x=["Activation","Dominance","Valence","Mean"],heigth=[activation_loss,dominance_loss,valence_loss,np.mean([activation_loss,dominance_loss,valence_loss])])
+            activation_loss = activation_loss.cpu()/len(dataloader_eval)
+            valence_loss = valence_loss.cpu()/len(dataloader_eval)
+            dominance_loss = dominance_loss.cpu()/len(dataloader_eval)
+            x = ["Activation","Dominance","Valence","Mean"]
+            y = [activation_loss,dominance_loss,valence_loss,np.mean([activation_loss,dominance_loss,valence_loss])]
+            plt.bar(x=x,height=y)
+            for i in range(len(x)):
+                plt.text(i, y[i].item()/2, np.round(y[i].item(),4), ha = 'center')
             plt.title(title)
+            plt.xlabel("Variable Objetivo")
+            plt.ylabel("MSE")
             plt.show()
-            print(f"MSE Activation: {activation_loss}, MSE dominance: {dominance_loss}, MSE valence: {valence_loss}")
+            print(f"MSE Activation: {activation_loss}, MSE dominance: {dominance_loss}, MSE valence: {valence_loss}, MSE mean: {np.mean([activation_loss,dominance_loss,valence_loss])}")
         
     def save_model(self,name):
         torch.save(self.model.state_dict(), name+".pth")
@@ -160,20 +164,4 @@ class EngineRNN:
             pass
         df = pd.DataFrame(np.array([self.train_losses,self.val_losses]).T,columns=["train","val"])
         df.to_csv("losses/"+name+".csv",index=False)
-    
-    def return_acc(self):
-        return self.acc
 
-    def predict_one(self,audio,data_folder):
-        diccionario = {0: "Neutral", 1: "Sad", 2: "Fear",3: "Disgust",4: "Happy/Joy", 5: "Anger", -1: "desconocida"}
-        waveform,_ = librosa.load(os.path.join(data_folder,audio),sr=SAMPLERATE)
-        features = self.preprocessing.transform(waveform,pad=False)
-        length = [len(features)]
-        pred = self.model(torch.unsqueeze(features,dim=0).to(DEVICE),length)
-        label_pred = torch.argmax(pred,dim=1).item()
-        df = pd.read_csv("CREMA-D/labels.csv")
-        try:
-            label = df.loc[df['path'] == audio]["class"][0]
-        except:
-            label = -1
-        print("Emoción real: "+diccionario[label]+"; Emoción predicha: "+diccionario[label_pred])
