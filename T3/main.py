@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     logging.info(f'Using device {device}')
 
-    trainer = EngineRNN(input_size = N_MFCC+2,
+    trainer = EngineRNN(input_size = N_MFCC+2+N_MELS+12,
                          hidden_size = args.hidden_size,
                          num_rnn_layers = args.num_rnn_layers,
                          num_mlp_layers = args.num_mlp_layers,

@@ -4,17 +4,14 @@ import torch.nn as nn
 import pandas as pd
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from torch.optim import SGD, Adam
+from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR, CyclicLR, ReduceLROnPlateau
-from sklearn.metrics import confusion_matrix
-import seaborn as sns
 import matplotlib.pyplot as plt
 from blocks import CustomRNN
 from config import SEED, DEVICE, SAMPLERATE
 from PodcastDataset import PodcastDataset
 import os
-import librosa
-
+from sklearn.metrics import mean_squared_error as mse
 
 class EngineRNN:
     def __init__(self,input_size,hidden_size,num_rnn_layers,num_mlp_layers, output_size, dropout,batch_size,learning_rate,preprocessing):
@@ -30,11 +27,11 @@ class EngineRNN:
         self.optimizer = Adam(self.model.parameters(),lr=learning_rate) 
         self.scheduler = StepLR(self.optimizer,step_size=10,gamma=0.1)
         self.criterion = nn.MSELoss()
+        #self.criterion = CCCLoss()
         self.train_losses = []
         self.val_losses = []
         self.best_val_loss = np.inf
-        self.acc = 0
-        self.best_acc = 0
+
 
         try:
             os.makedirs("losses")
@@ -58,6 +55,7 @@ class EngineRNN:
             acc = 0 
             with tqdm(total=len(dataloader),desc=f'Epoca {epoch}/{epochs}',unit="batch") as pbar:
                 for batch in dataloader:
+                    
                     self.optimizer.zero_grad()
                     input,activation, valence, dominance,lengths = batch[0].float().to(DEVICE),batch[1].to(DEVICE),batch[2].to(DEVICE),batch[3].to(DEVICE), batch[4]
                     
@@ -82,21 +80,22 @@ class EngineRNN:
             with torch.no_grad():
                 for batch in tqdm(dataloader_eval, total=len(dataloader_eval),desc="Validación"):
                     input,activation, valence, dominance,lengths = batch[0].float().to(DEVICE),batch[1].to(DEVICE),batch[2].to(DEVICE),batch[3].to(DEVICE), batch[4]
-                    pred = self.model(input,lengths)
-                    real_values = torch.stack([activation,valence,dominance],dim=1)
+                    pred = self.model(input,lengths).cpu()
+                    real_values = torch.stack([activation,valence,dominance],dim=1).cpu()
 
                     val_loss += self.criterion(pred,real_values).item()
 
-                    activation_loss += self.criterion(pred[0][0]*6+1,real_values[0][0]*6+1)
-                    valence_loss += self.criterion(pred[0][1]*6+1,real_values[0][1]*6+1)
-                    dominance_loss += self.criterion(pred[0][2]*6+1,real_values[0][2]*6+1)
+                    activation_loss += mse([pred[0][0].item()*6+1],[real_values[0][0].item()*6+1])
+                    valence_loss += mse([pred[0][1].item()*6+1],[real_values[0][1].item()*6+1])
+                    dominance_loss += mse([pred[0][2].item()*6+1],[real_values[0][2].item()*6+1])
 
                 val_loss = val_loss/len(dataloader_eval)
                 activation_loss = activation_loss/len(dataloader_eval)
                 valence_loss = valence_loss/len(dataloader_eval)
                 dominance_loss = dominance_loss/len(dataloader_eval)
 
-            self.scheduler.step()   #Step en cada época
+            if epochs<11:
+                self.scheduler.step()   #Step en cada época
             
             self.val_losses.append(val_loss)
 
@@ -120,18 +119,19 @@ class EngineRNN:
         if status == 0:
             print("El entrenamiento ha concluido dado que se llegó a las épocas")
 
-    def evaluate(self,dataloader_eval,title=""):
+    def evaluate(self,dataloader_eval,title="",return_outputs=False):
         self.model.eval()
         activation_loss = 0
         valence_loss = 0
         dominance_loss = 0
-      
+        real_output, predicted_output = {"activation":[],"dominance":[],"valence":[]},{"activation":[],"dominance":[],"valence":[]}
         with torch.no_grad():
             for batch in tqdm(dataloader_eval, total=len(dataloader_eval),desc="Evaluación"):
                 input,activation, valence, dominance,lengths = batch[0].float().to(DEVICE),batch[1].to(DEVICE),batch[2].to(DEVICE),batch[3].to(DEVICE), batch[4]
                 pred = self.model(input,lengths)
                 real_values = torch.stack([activation,valence,dominance],dim=1)
-
+                real_output["activation"].append(activation.item()*6+1); real_output["dominance"].append(dominance.item()*6+1); real_output["valence"].append(valence.item()*6+1);
+                predicted_output["activation"].append(pred[0][0].item()*6+1); predicted_output["dominance"].append(pred[0][2].item()*6+1); predicted_output["valence"].append(pred[0][1].item()*6+1);#Hice cambios aqui
                 activation_loss += self.criterion(pred[0][0]*6+1,real_values[0][0]*6+1)
                 valence_loss += self.criterion(pred[0][1]*6+1,real_values[0][1]*6+1)
                 dominance_loss += self.criterion(pred[0][2]*6+1,real_values[0][2]*6+1)
@@ -149,6 +149,8 @@ class EngineRNN:
             plt.ylabel("MSE")
             plt.show()
             print(f"MSE Activation: {activation_loss}, MSE dominance: {dominance_loss}, MSE valence: {valence_loss}, MSE mean: {np.mean([activation_loss,dominance_loss,valence_loss])}")
+        if return_outputs:
+            return real_output, predicted_output
         
     def save_model(self,name):
         torch.save(self.model.state_dict(), name+".pth")

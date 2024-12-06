@@ -39,12 +39,19 @@ class Preprocessing:
     def transform(self,waveform,pad=True):
         signal = torch.Tensor(waveform)
         mfcc = self.mfcc(signal).T
-        #logmelspec = torch.Tensor(librosa.power_to_db(self.melspec(signal))).T
+        logmelspec = torch.Tensor(librosa.power_to_db(self.melspec(signal))).T
+        chromagram = torch.Tensor(librosa.feature.chroma_stft(y=waveform,
+                                                sr=self.samplerate,
+                                                n_fft=self.n_fft,
+                                               hop_length=self.hop,
+                                                 win_length=self.frame_size,
+                                                 window="hamming",
+                                                 n_chroma=12)).T
     
         zfc = torch.Tensor(librosa.feature.zero_crossing_rate(y=waveform,frame_length=self.frame_size, hop_length=self.hop)).T
         rms = torch.Tensor(librosa.feature.rms(y=waveform,frame_length=self.frame_size, hop_length=self.hop)).T
     
-        features = torch.cat((mfcc,zfc,rms),dim=1)
+        features = torch.cat((mfcc,zfc,rms,logmelspec,chromagram),dim=1)
         if self.normalize:
             features = (features-self.mean)/(self.std)
 
